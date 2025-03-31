@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>YYZ ATC Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .runway { padding: 10px; margin: 5px; border: 1px solid #ccc; }
+        .AVAILABLE { background-color: #d4edda; }
+        .OCCUPIED { background-color: #f8d7da; }
+        .MAINTENANCE { background-color: #fff3cd; }
+        .logs { grid-column: span 2; border-top: 1px solid #eee; padding-top: 20px; }
+        .log-entry { padding: 5px; border-bottom: 1px solid #eee; }
+        .queue { border: 1px solid #ddd; padding: 10px; }
+        .aircraft { margin: 5px; padding: 5px; border: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Toronto Pearson (YYZ) ATC Dashboard</h1>
+        <div class="dashboard">
+            <div class="runways">
+                <h2>Runways</h2>
+                <div id="runway-status"></div>
+            </div>
+            
+            <div class="queues">
+                <div class="queue">
+                    <h3>Landing Queue</h3>
+                    <ul id="landing-queue"></ul>
+                </div>
+                <div class="queue">
+                    <h3>Takeoff Queue</h3>
+                    <ul id="takeoff-queue"></ul>
+                </div>
+            </div>
+            
+            <div class="aircrafts">
+                <h3>Aircrafts</h3>
+                <div id="aircraft-status"></div>
+            </div>
+            
+            <div class="logs">
+                <h3>ATC Logs</h3>
+                <div id="atc-logs"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:6789');
+        
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            updateDashboard(data);
+        };
+
+        function updateDashboard(data) {
+            // Update runways
+            document.getElementById('runway-status').innerHTML = data.runways.map(runway => `
+                <div class="runway ${runway.status}">
+                    Runway ${runway.id} (${runway.length}m): 
+                    ${runway.current_operation || 'idle'}
+                    ${runway.current_aircraft ? `- ${runway.current_aircraft}` : ''}
+                </div>
+            `).join('');
+            
+            // Update queues
+            document.getElementById('landing-queue').innerHTML = 
+                data.landing_queue.map(flight => `<li>${flight}</li>`).join('');
+            
+            document.getElementById('takeoff-queue').innerHTML = 
+                data.takeoff_queue.map(flight => `<li>${flight}</li>`).join('');
+            
+            // Update aircrafts
+            document.getElementById('aircraft-status').innerHTML = 
+                data.aircrafts.map(ac => `
+                    <div class="aircraft">
+                        ${ac.flight_number} (${getSizeName(ac.size)}) - ${ac.status}
+                        ${ac.runway_assigned ? `- Runway ${ac.runway_assigned}` : ''}
+                        ${ac.delay ? `- Delay: ${ac.delay} min` : ''}
+                    </div>
+                `).join('');
+            
+            // Update logs
+            document.getElementById('atc-logs').innerHTML = 
+                data.logs.map(log => `<div class="log-entry">${log}</div>`).join('');
+        }
+
+        function getSizeName(size) {
+            const sizes = {1: 'SMALL', 2: 'MEDIUM', 3: 'LARGE'};
+            return sizes[size] || 'UNKNOWN';
+        }
+
+        // Simulate aircraft (for testing)
+        function simulateAircraft() {
+            const flightNumber = 'AC' + Math.floor(Math.random() * 1000);
+            const size = Math.floor(Math.random() * 3) + 1;
+            
+            // In a real app, you would call the gRPC service here
+            console.log(`Simulating aircraft ${flightNumber} (size ${size}) requesting landing`);
+        }
+
+        setInterval(simulateAircraft, 10000);
+    </script>
+</body>
+</html>
