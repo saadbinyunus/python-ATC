@@ -1,218 +1,365 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>YYZ ATC Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Traffic Control Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .runway { padding: 10px; margin: 5px; border: 1px solid #ccc; }
-        .AVAILABLE { background-color: #d4edda; }
-        .OCCUPIED { background-color: #f8d7da; }
-        .MAINTENANCE { background-color: #fff3cd; }
-        .logs { grid-column: span 2; border-top: 1px solid #eee; padding-top: 20px; max-height: 300px; overflow-y: auto; }
-        .log-entry { padding: 5px; border-bottom: 1px solid #eee; }
-        .log-entry.error { color: #721c24; background-color: #f8d7da; border-left: 3px solid #dc3545; }
-        .log-entry.success { color: #155724; background-color: #d4edda; border-left: 3px solid #28a745; }
-        .log-entry.warning { color: #856404; background-color: #fff3cd; border-left: 3px solid #ffc107; }
-        .queue { border: 1px solid #ddd; padding: 10px; }
-        .aircraft { margin: 5px; padding: 5px; border: 1px solid #eee; }
-        .status-badge { 
-            display: inline-block; 
-            padding: 2px 5px; 
-            border-radius: 3px; 
-            font-size: 0.8em;
-            color: white;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
         }
-        .ENROUTE { background-color: #007bff; }
-        .HOLDING { background-color: #ffc107; color: black; }
-        .LANDING { background-color: #28a745; }
-        .LANDED { background-color: #6c757d; }
-        .TAKEOFF { background-color: #17a2b8; }
-        .DEPARTED { background-color: #343a40; }
-        .GO_AROUND { background-color: #dc3545; }
-        .DELAYED { background-color: #fd7e14; }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .panel {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-enroute { background-color: #3498db; }
+        .status-holding { background-color: #f39c12; }
+        .status-landing { background-color: #e74c3c; }
+        .status-landed { background-color: #2ecc71; }
+        .status-takeoff { background-color: #9b59b6; }
+        .status-departed { background-color: #1abc9c; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+        .runway {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+        }
+        .runway-available { border-left: 5px solid #2ecc71; }
+        .runway-occupied { border-left: 5px solid #e74c3c; }
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        select, input {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        #connection-status {
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .connected { background-color: #2ecc71; color: white; }
+        .disconnected { background-color: #e74c3c; color: white; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Toronto Pearson (YYZ) ATC Dashboard</h1>
-        <div class="dashboard">
-            <div class="runways">
-                <h2>Runways</h2>
-                <div id="runway-status"></div>
+        <div class="panel">
+            <h1>Air Traffic Control Dashboard</h1>
+            <div>
+                <span id="connection-status" class="disconnected">DISCONNECTED</span>
+                <div class="controls">
+                    <button id="test-landing">Send Test Landing</button>
+                    <button id="test-takeoff">Send Test Takeoff</button>
+                </div>
+                <div class="controls">
+                    <select id="flight-number">
+                        <option value="">Select Aircraft</option>
+                    </select>
+                    <select id="status-select">
+                        <option value="LANDED">LANDED</option>
+                        <option value="DEPARTED">DEPARTED</option>
+                        <option value="HOLDING">HOLDING</option>
+                    </select>
+                    <button id="update-status">Update Status</button>
+                </div>
             </div>
             
-            <div class="queues">
-                <div class="queue">
+            <h2>Runways</h2>
+            <div id="runways-container"></div>
+        </div>
+        
+        <div class="panel">
+            <h2>Aircraft</h2>
+            <table id="aircraft-table">
+                <thead>
+                    <tr>
+                        <th>Flight</th>
+                        <th>Size</th>
+                        <th>Status</th>
+                        <th>Runway</th>
+                        <th>Delay</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        
+        <div class="panel">
+            <h2>Queues</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
                     <h3>Landing Queue</h3>
                     <ol id="landing-queue"></ol>
                 </div>
-                <div class="queue">
+                <div>
                     <h3>Takeoff Queue</h3>
                     <ol id="takeoff-queue"></ol>
                 </div>
             </div>
-            
-            <div class="aircrafts">
-                <h3>Aircraft Status</h3>
-                <div id="aircraft-status"></div>
-            </div>
-            
-            <div class="logs">
-                <h3>ATC Logs</h3>
-                <div id="atc-logs"></div>
-            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>Activity Log</h2>
+            <div id="activity-log"></div>
         </div>
     </div>
 
     <script>
+        // WebSocket connection
         let socket;
-        let reconnectAttempts = 0;
-        const MAX_RECONNECT_ATTEMPTS = 5;
-        const RECONNECT_DELAY = 5000;
+        const wsUrl = 'ws://localhost:6789';
         
+        // DOM elements
+        const connectionStatus = document.getElementById('connection-status');
+        const aircraftTable = document.getElementById('aircraft-table').querySelector('tbody');
+        const runwaysContainer = document.getElementById('runways-container');
+        const landingQueue = document.getElementById('landing-queue');
+        const takeoffQueue = document.getElementById('takeoff-queue');
+        const activityLog = document.getElementById('activity-log');
+        const flightNumberSelect = document.getElementById('flight-number');
+        const statusSelect = document.getElementById('status-select');
+        const testLandingBtn = document.getElementById('test-landing');
+        const testTakeoffBtn = document.getElementById('test-takeoff');
+        const updateStatusBtn = document.getElementById('update-status');
+        
+        // Connect to WebSocket
         function connect() {
-            socket = new WebSocket('ws://localhost:6789');
+            socket = new WebSocket(wsUrl);
             
-            socket.onopen = () => {
-                reconnectAttempts = 0;
-                addLog("Connected to ATC server", "success");
+            socket.onopen = function() {
+                connectionStatus.textContent = 'CONNECTED';
+                connectionStatus.className = 'connected';
+                console.log('Connected to ATC server');
             };
             
-            socket.onclose = () => {
-                if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                    reconnectAttempts++;
-                    addLog(`Disconnected. Attempting to reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`, "warning");
-                    setTimeout(connect, RECONNECT_DELAY);
-                } else {
-                    addLog("Max reconnection attempts reached. Please refresh the page.", "error");
+            socket.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                if (message.type === 'status_update') {
+                    updateDashboard(message.data);
                 }
             };
             
-            socket.onerror = (error) => {
-                addLog(`WebSocket error: ${error.message || 'Unknown error'}`, "error");
+            socket.onclose = function() {
+                connectionStatus.textContent = 'DISCONNECTED';
+                connectionStatus.className = 'disconnected';
+                console.log('Disconnected from ATC server');
+                // Attempt to reconnect after 3 seconds
+                setTimeout(connect, 3000);
             };
             
-            socket.onmessage = (event) => {
-                try {
-                    updateDashboard(JSON.parse(event.data));
-                } catch (error) {
-                    addLog(`Error parsing message: ${error.message}`, "error");
-                }
+            socket.onerror = function(error) {
+                console.error('WebSocket error:', error);
             };
         }
         
-        function addLog(message, type = "info") {
-            const logEntry = document.createElement('div');
-            logEntry.className = `log-entry ${type}`;
-            logEntry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
-            const logsContainer = document.getElementById('atc-logs');
-            logsContainer.appendChild(logEntry);
-            logsContainer.scrollTop = logsContainer.scrollHeight;
-        }
-
+        // Update dashboard with new data
         function updateDashboard(data) {
+            // Update aircraft table
+            aircraftTable.innerHTML = '';
+            flightNumberSelect.innerHTML = '<option value="">Select Aircraft</option>';
+            
+            data.aircrafts.forEach(aircraft => {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${aircraft.flight_number}</td>
+                    <td>${getSizeName(aircraft.size)}</td>
+                    <td><span class="status-indicator status-${aircraft.status.toLowerCase()}"></span>${aircraft.status}</td>
+                    <td>${aircraft.runway_assigned || '-'}</td>
+                    <td>${aircraft.delay || '0'} sec</td>
+                `;
+                
+                aircraftTable.appendChild(row);
+                
+                // Add to flight number dropdown
+                const option = document.createElement('option');
+                option.value = aircraft.flight_number;
+                option.textContent = aircraft.flight_number;
+                flightNumberSelect.appendChild(option);
+            });
+            
             // Update runways
-            document.getElementById('runway-status').innerHTML = data.runways.map(runway => `
-                <div class="runway ${runway.status}">
-                    <strong>Runway ${runway.id}</strong> (${runway.length}m)<br>
-                    ${runway.current_operation ? runway.current_operation.toUpperCase() : 'IDLE'}<br>
-                    ${runway.current_aircraft ? `Aircraft: ${runway.current_aircraft}` : ''}
-                </div>
-            `).join('');
+            runwaysContainer.innerHTML = '';
+            data.runways.forEach(runway => {
+                const runwayDiv = document.createElement('div');
+                runwayDiv.className = `runway runway-${runway.status.toLowerCase()}`;
+                
+                runwayDiv.innerHTML = `
+                    <h3>Runway ${runway.id} (${runway.length}m)</h3>
+                    <p>Status: ${runway.status}</p>
+                    ${runway.current_operation ? `<p>Operation: ${runway.current_operation}</p>` : ''}
+                    ${runway.current_aircraft ? `<p>Aircraft: ${runway.current_aircraft}</p>` : ''}
+                `;
+                
+                runwaysContainer.appendChild(runwayDiv);
+            });
             
             // Update queues
-            document.getElementById('landing-queue').innerHTML = 
-                data.landing_queue.map(flight => `<li>${flight}</li>`).join('') || '<li>Empty</li>';
+            landingQueue.innerHTML = '';
+            data.landing_queue.forEach(flight => {
+                const li = document.createElement('li');
+                li.textContent = flight;
+                landingQueue.appendChild(li);
+            });
             
-            document.getElementById('takeoff-queue').innerHTML = 
-                data.takeoff_queue.map(flight => `<li>${flight}</li>`).join('') || '<li>Empty</li>';
+            takeoffQueue.innerHTML = '';
+            data.takeoff_queue.forEach(flight => {
+                const li = document.createElement('li');
+                li.textContent = flight;
+                takeoffQueue.appendChild(li);
+            });
             
-            // Update aircrafts
-            document.getElementById('aircraft-status').innerHTML = 
-                data.aircrafts.map(ac => `
-                    <div class="aircraft">
-                        <strong>${ac.flight_number}</strong> 
-                        (${getSizeName(ac.size)})<br>
-                        <span class="status-badge ${ac.status}">${ac.status}</span><br>
-                        ${ac.runway_assigned ? `Assigned to Runway ${ac.runway_assigned}<br>` : ''}
-                        ${ac.delay ? `Delay: ${ac.delay} min` : ''}
-                    </div>
-                `).join('') || '<div>No active aircraft</div>';
-            
-            // Update logs
-            const newLogs = data.logs.map(log => `<div class="log-entry">${log}</div>`).join('');
-            document.getElementById('atc-logs').innerHTML = newLogs;
-        }
-
-        function getSizeName(size) {
-            const sizes = {1: 'SMALL', 2: 'MEDIUM', 3: 'LARGE'};
-            return sizes[size] || 'UNKNOWN';
-        }
-
-        // Initialize connection
-        connect();
-
-        // Test aircraft generator (uncomment to enable)
-        /*
-        function generateTestAircraft() {
-            if (socket.readyState !== WebSocket.OPEN) return;
-            
-            const flightNumber = 'AC' + Math.floor(Math.random() * 1000);
-            const size = Math.floor(Math.random() * 3) + 1;
-            
-            fetch(`http://localhost:50051/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/grpc',
-                },
-                body: JSON.stringify({
-                    flight_number: flightNumber,
-                    size: size
-                })
-            }).catch(error => {
-                addLog(`Error sending test aircraft: ${error.message}`, "error");
+            // Update activity log
+            activityLog.innerHTML = '';
+            data.logs.forEach(log => {
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.textContent = log;
+                activityLog.appendChild(entry);
             });
         }
-        setInterval(generateTestAircraft, 15000);
-        */
-        function generateDummyAircraft() {
-            if (socket.readyState !== WebSocket.OPEN) return;
-    
-            const airlines = ['AC', 'WS', 'DL', 'AA', 'UA'];
-            const flightNum = `${randomChoice(airlines)}${Math.floor(100 + Math.random() * 900)}`;
+        
+        // Helper function to get size name
+        function getSizeName(size) {
+            switch(size) {
+                case 1: return 'Small';
+                case 2: return 'Medium';
+                case 3: return 'Large';
+                default: return 'Unknown';
+            }
+        }
+        
+        // Send test landing request
+        testLandingBtn.addEventListener('click', async () => {
+            const airlines = ['AC', 'WS', 'DL', 'AA', 'UA', 'BA', 'AF'];
+            const flightNum = `${airlines[Math.floor(Math.random() * airlines.length)]}${Math.floor(100 + Math.random() * 900)}`;
             const size = Math.floor(1 + Math.random() * 3);
-            const statuses = ['ENROUTE', 'HOLDING', 'LANDING', 'LANDED', 'TAKEOFF'];
-    
-            fetch(`http://localhost:50051/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/grpc',
-            },
-            body: JSON.stringify({
-                flight_number: flightNum,
-                size: size,
-                status: randomChoice(statuses),
-                runway_assigned: Math.random() > 0.7 ? Math.floor(1 + Math.random() * 2) : 0,
-                delay: Math.random() > 0.8 ? Math.floor(Math.random() * 30) : 0
-            })
-        }).catch(error => {
-            addLog(`Error sending test aircraft: ${error.message}`, "error");
+            
+            try {
+                const response = await fetch('http://localhost:50051', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        flight_number: flightNum,
+                        size: size
+                    })
+                });
+                console.log('Test landing sent:', flightNum);
+            } catch (error) {
+                console.error('Error sending test landing:', error);
+            }
         });
-    }
-    
-    function randomChoice(items) {
-        return items[Math.floor(Math.random() * items.length)];
-    }
-
-    // Initialize with some dummy data
-    for (let i = 0; i < 3; i++) {
-        setTimeout(generateDummyAircraft, i * 1500);
-    }
-
-    // Regular dummy data generation
-    setInterval(generateDummyAircraft, 5000);
+        
+        // Send test takeoff request
+        testTakeoffBtn.addEventListener('click', async () => {
+            const airlines = ['AC', 'WS', 'DL', 'AA', 'UA', 'BA', 'AF'];
+            const flightNum = `${airlines[Math.floor(Math.random() * airlines.length)]}${Math.floor(100 + Math.random() * 900)}`;
+            const size = Math.floor(1 + Math.random() * 3);
+            
+            try {
+                const response = await fetch('http://localhost:50051', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        flight_number: flightNum,
+                        size: size
+                    })
+                });
+                console.log('Test takeoff sent:', flightNum);
+            } catch (error) {
+                console.error('Error sending test takeoff:', error);
+            }
+        });
+        
+        // Update aircraft status
+        updateStatusBtn.addEventListener('click', async () => {
+            const flightNumber = flightNumberSelect.value;
+            const status = statusSelect.value;
+            
+            if (!flightNumber) {
+                alert('Please select an aircraft');
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:50051', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        flight_number: flightNumber,
+                        status: status
+                    })
+                });
+                console.log(`Status updated for ${flightNumber} to ${status}`);
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        });
+        
+        // Initialize
+        connect();
     </script>
 </body>
 </html>
