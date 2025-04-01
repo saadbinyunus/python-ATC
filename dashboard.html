@@ -177,6 +177,42 @@
         }
         setInterval(generateTestAircraft, 15000);
         */
+        function generateDummyAircraft() {
+            if (socket.readyState !== WebSocket.OPEN) return;
+    
+            const airlines = ['AC', 'WS', 'DL', 'AA', 'UA'];
+            const flightNum = `${randomChoice(airlines)}${Math.floor(100 + Math.random() * 900)}`;
+            const size = Math.floor(1 + Math.random() * 3);
+            const statuses = ['ENROUTE', 'HOLDING', 'LANDING', 'LANDED', 'TAKEOFF'];
+    
+            fetch(`http://localhost:50051/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/grpc',
+            },
+            body: JSON.stringify({
+                flight_number: flightNum,
+                size: size,
+                status: randomChoice(statuses),
+                runway_assigned: Math.random() > 0.7 ? Math.floor(1 + Math.random() * 2) : 0,
+                delay: Math.random() > 0.8 ? Math.floor(Math.random() * 30) : 0
+            })
+        }).catch(error => {
+            addLog(`Error sending test aircraft: ${error.message}`, "error");
+        });
+    }
+    
+    function randomChoice(items) {
+        return items[Math.floor(Math.random() * items.length)];
+    }
+
+    // Initialize with some dummy data
+    for (let i = 0; i < 3; i++) {
+        setTimeout(generateDummyAircraft, i * 1500);
+    }
+
+    // Regular dummy data generation
+    setInterval(generateDummyAircraft, 5000);
     </script>
 </body>
 </html>
