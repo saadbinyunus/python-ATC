@@ -10,6 +10,7 @@ import atc_pb2_grpc
 import webbrowser
 import os
 import random
+import time
 
 class AircraftSize(Enum):
     SMALL = 1
@@ -42,60 +43,133 @@ class ATCCore:
     def __init__(self):
         self.aircrafts = {}
         self.runways = [
-            {"id": 1, "length": 3000, "status": RunwayStatus.AVAILABLE.value},
-            {"id": 2, "length": 2500, "status": RunwayStatus.AVAILABLE.value}
+            {"id": 1, "length": 3000, "status": RunwayStatus.AVAILABLE.value, "current_operation": None, "current_aircraft": None},
+            {"id": 2, "length": 2500, "status": RunwayStatus.AVAILABLE.value, "current_operation": None, "current_aircraft": None}
         ]
         self.landing_queue = []
         self.takeoff_queue = []
         self.logs = []
         self.connections = set()
-        self._init_dummy_data()
-        # Track runway operations
-        self.runway_operations = {}  # {runway_id: {"end_time": float, "aircraft": str}}
+        self.runway_operations = {}  # Initialize this before it's used
+        self._init_dummy_data()  # Now this can safely use runway_operations
+        
+        # Start background tasks
+        asyncio.create_task(self._generate_test_flights())
+        asyncio.create_task(self._runway_monitor())
 
-    async def _complete_runway_operation(self, runway_id):
-        """Mark runway as available after operation completes"""
-        await asyncio.sleep(5)  # Operation takes 5 seconds
-        self.runways[runway_id-1]["status"] = RunwayStatus.AVAILABLE.value
-        self.runways[runway_id-1]["current_operation"] = None
-        self.runways[runway_id-1]["current_aircraft"] = None
-        self._process_queues()  # Check if any aircraft are waiting
+    async def _generate_test_flights(self):
+        """Auto-generate test flights"""
+        airlines = ['AC', 'WS', 'DL', 'AA', 'UA', 'BA', 'AF']
+        while True:
+            await asyncio.sleep(10)  # Every 10 seconds
+            flight_num = f"{random.choice(airlines)}{random.randint(100, 999)}"
+            size = random.randint(1, 3)
+            self.process_landing_request(flight_num, size)
+            self._add_log(f"Test flight {flight_num} entered airspace")
+
+    async def _runway_monitor(self):
+        """Monitor runway operations and complete them after delay"""
+        while True:
+            await asyncio.sleep(1)
+            now = time.time()
+            completed = []
+            
+            for runway_id, operation in list(self.runway_operations.items()):
+                if operation["end_time"] <= now:
+                    runway = next(r for r in self.runways if r["id"] == runway_id)
+                    aircraft_id = operation["aircraft"]
+                    
+                    if aircraft_id in self.aircrafts:
+                        if operation["type"] == "landing":
+                            self.aircrafts[aircraft_id]["status"] = AircraftStatus.LANDED.value
+                            self._add_log(f"{aircraft_id} has landed on runway {runway_id}")
+                        else:  # takeoff
+                            self.aircrafts[aircraft_id]["status"] = AircraftStatus.DEPARTED.value
+                            self._add_log(f"{aircraft_id} has departed from runway {runway_id}")
+                            # Remove departed aircraft
+                            del self.aircrafts[aircraft_id]
+                    
+                    # Free the runway
+                    runway["status"] = RunwayStatus.AVAILABLE.value
+                    runway["current_operation"] = None
+                    runway["current_aircraft"] = None
+                    completed.append(runway_id)
+            
+            # Remove completed operations
+            for runway_id in completed:
+                del self.runway_operations[runway_id]
+            
+            # Process queues if any runways freed
+            if completed:
+                self._process_queues()
 
     def _process_queues(self):
-        """Process next in queue if runways are available"""
-        # Process landing queue first
-        for runway in self.runways:
+        """Process next aircraft in queues"""
+        # Process landing queue first (priority)
+        for runway in sorted(self.runways, key=lambda x: x["length"], reverse=True):
             if runway["status"] == RunwayStatus.AVAILABLE.value and self.landing_queue:
-                next_aircraft = self.landing_queue.pop(0)
-                self._assign_landing(next_aircraft, runway["id"])
+                next_flight = self.landing_queue.pop(0)
+                if next_flight in self.aircrafts:
+                    self._assign_landing(next_flight, runway["id"])
+                    return  # Only assign one at a time
         
         # Then process takeoff queue
         for runway in self.runways:
             if runway["status"] == RunwayStatus.AVAILABLE.value and self.takeoff_queue:
-                next_aircraft = self.takeoff_queue.pop(0)
-                self._assign_takeoff(next_aircraft, runway["id"])
-                
+                next_flight = self.takeoff_queue.pop(0)
+                if next_flight in self.aircrafts:
+                    self._assign_takeoff(next_flight, runway["id"])
+                    return  # Only assign one at a time
+
     def _assign_landing(self, flight_number, runway_id):
         """Assign landing to available runway"""
-        aircraft = self.aircrafts[flight_number]  # Get aircraft dictionary
+        if flight_number not in self.aircrafts:
+            return
+        
+        aircraft = self.aircrafts[flight_number]
+        runway = next(r for r in self.runways if r["id"] == runway_id)
+        
         aircraft["status"] = AircraftStatus.LANDING.value
         aircraft["runway_assigned"] = runway_id
-        self.runways[runway_id-1]["status"] = RunwayStatus.OCCUPIED.value
-        self.runways[runway_id-1]["current_operation"] = "landing"
-        self.runways[runway_id-1]["current_aircraft"] = flight_number
+        
+        runway["status"] = RunwayStatus.OCCUPIED.value
+        runway["current_operation"] = "landing"
+        runway["current_aircraft"] = flight_number
+        
+        # Set operation end time (landing takes 10-15 seconds)
+        operation_time = random.uniform(10, 15)
+        self.runway_operations[runway_id] = {
+            "type": "landing",
+            "aircraft": flight_number,
+            "end_time": time.time() + operation_time
+        }
+        
         self._add_log(f"{flight_number} cleared to land on runway {runway_id}")
-        asyncio.create_task(self._complete_runway_operation(runway_id))
 
     def _assign_takeoff(self, flight_number, runway_id):
         """Assign takeoff to available runway"""
+        if flight_number not in self.aircrafts:
+            return
+        
         aircraft = self.aircrafts[flight_number]
+        runway = next(r for r in self.runways if r["id"] == runway_id)
+        
         aircraft["status"] = AircraftStatus.TAKEOFF.value
         aircraft["runway_assigned"] = runway_id
-        self.runways[runway_id-1]["status"] = RunwayStatus.OCCUPIED.value
-        self.runways[runway_id-1]["current_operation"] = "takeoff"
-        self.runways[runway_id-1]["current_aircraft"] = flight_number
+        
+        runway["status"] = RunwayStatus.OCCUPIED.value
+        runway["current_operation"] = "takeoff"
+        runway["current_aircraft"] = flight_number
+        
+        # Set operation end time (takeoff takes 8-12 seconds)
+        operation_time = random.uniform(8, 12)
+        self.runway_operations[runway_id] = {
+            "type": "takeoff",
+            "aircraft": flight_number,
+            "end_time": time.time() + operation_time
+        }
+        
         self._add_log(f"{flight_number} cleared for takeoff on runway {runway_id}")
-        asyncio.create_task(self._complete_runway_operation(runway_id))
 
     def _init_dummy_data(self):
         """Initialize with 5 random aircraft"""
@@ -103,7 +177,6 @@ class ATCCore:
         for i in range(1, 6):
             flight_num = f"{random.choice(airlines)}{random.randint(100, 999)}"
             size = random.randint(1, 3)
-            # Create aircraft first
             self.aircrafts[flight_num] = {
                 "flight_number": flight_num,
                 "size": size,
@@ -113,65 +186,13 @@ class ATCCore:
                 "delay": 0,
                 "timestamp": datetime.now().isoformat()
             }
-            # Then process landing request
             self.process_landing_request(flight_num, size)
             self._add_log(f"Dummy aircraft {flight_num} entered airspace")
 
-    def generate_dummy_activity(self):
-        """Randomly generate aircraft movements"""
-        actions = [
-            self._generate_arrival,
-            self._generate_departure,
-            self._generate_status_change,
-            lambda: None  # Do nothing sometimes
-        ]
-        random.choice(actions)()
-
-    def _generate_arrival(self):
-        if random.random() < 0.3:  # 30% chance
-            airlines = ['AC', 'WS', 'DL', 'AA']
-            flight_num = f"{random.choice(airlines)}{random.randint(100, 999)}"
-            self.add_aircraft(flight_num, random.randint(1, 3))
-            self._add_log(f"New arrival: {flight_num} requesting landing")
-
-    def _generate_departure(self):
-        if self.aircrafts and random.random() < 0.2:  # 20% chance
-            flight_num = random.choice(list(self.aircrafts.keys()))
-            if self.aircrafts[flight_num]['status'] == AircraftStatus.LANDED.value:
-                self.aircrafts[flight_num]['status'] = AircraftStatus.TAKEOFF.value
-                self._add_log(f"Departure cleared: {flight_num}")
-
-    def _generate_status_change(self):
-        if self.aircrafts:
-            flight_num = random.choice(list(self.aircrafts.keys()))
-            current_status = self.aircrafts[flight_num]['status']
-            
-            if current_status == AircraftStatus.ENROUTE.value:
-                if random.random() < 0.4:
-                    self.aircrafts[flight_num]['status'] = AircraftStatus.HOLDING.value
-                    self._add_log(f"{flight_num} holding due to traffic")
-            elif current_status == AircraftStatus.HOLDING.value:
-                if random.random() < 0.3:
-                    runway = random.choice([r for r in self.runways if r['status'] == RunwayStatus.AVAILABLE.value])
-                    if runway:
-                        self.aircrafts[flight_num]['status'] = AircraftStatus.LANDING.value
-                        self.aircrafts[flight_num]['runway_assigned'] = runway['id']
-                        runway['status'] = RunwayStatus.OCCUPIED.value
-                        self._add_log(f"{flight_num} cleared to land on runway {runway['id']}")
-
-
-    def get_system_status(self):
-        return {
-            "aircrafts": list(self.aircrafts.values()),
-            "runways": self.runways,
-            "landing_queue": self.landing_queue,
-            "takeoff_queue": self.takeoff_queue,
-            "logs": self.logs[-20:]
-        }
-
     def process_landing_request(self, flight_number, size):
+        """Process a new landing request"""
         if flight_number not in self.aircrafts:
-            aircraft = {
+            self.aircrafts[flight_number] = {
                 "flight_number": flight_number,
                 "size": size,
                 "status": AircraftStatus.ENROUTE.value,
@@ -180,9 +201,6 @@ class ATCCore:
                 "delay": 0,
                 "timestamp": datetime.now().isoformat()
             }
-            self.aircrafts[flight_number] = aircraft
-        else:
-            aircraft = self.aircrafts[flight_number]
         
         assigned_runway = self._assign_runway(flight_number)
         
@@ -193,23 +211,26 @@ class ATCCore:
             self.landing_queue.append(flight_number)
             position = len(self.landing_queue)
             instruction = f"hold position_{position}"
-            aircraft["status"] = AircraftStatus.HOLDING.value
-            aircraft["delay"] = position * 5  # 5 seconds per position
+            self.aircrafts[flight_number]["status"] = AircraftStatus.HOLDING.value
+            self.aircrafts[flight_number]["delay"] = position * 5
         
         return instruction, assigned_runway
 
     def _assign_runway(self, flight_number):
-        """Assign runway to aircraft"""
-        aircraft = self.aircrafts[flight_number]  # Get the aircraft dictionary
+        """Find suitable runway for aircraft"""
+        if flight_number not in self.aircrafts:
+            return 0
+        
+        aircraft = self.aircrafts[flight_number]
+        
         for runway in sorted(self.runways, key=lambda x: x["length"], reverse=True):
-            if self._can_accommodate(aircraft["size"], runway):
-                runway["status"] = RunwayStatus.OCCUPIED.value
-                runway["current_operation"] = aircraft["requested_operation"]
-                runway["current_aircraft"] = flight_number
+            if (runway["status"] == RunwayStatus.AVAILABLE.value and 
+                self._can_accommodate(aircraft["size"], runway)):
                 return runway["id"]
         return 0
 
     def _can_accommodate(self, aircraft_size, runway):
+        """Check if runway can accommodate aircraft size"""
         if runway["status"] != RunwayStatus.AVAILABLE.value:
             return False
         if aircraft_size == AircraftSize.LARGE.value and runway["length"] < 2500:
@@ -219,9 +240,24 @@ class ATCCore:
         return True
 
     def _add_log(self, message):
-        self.logs.append(f"{datetime.now().isoformat()} - {message}")
-        if len(self.logs) > 100:
+        """Add message to log"""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.logs.append(f"{timestamp} - {message}")
+        if len(self.logs) > 100:  # Keep log size manageable
             self.logs.pop(0)
+
+    def get_system_status(self):
+        """Get current system status for clients"""
+        return {
+            "aircrafts": list(self.aircrafts.values()),
+            "runways": self.runways,
+            "landing_queue": [f for f in self.landing_queue 
+                              if f in self.aircrafts and 
+                              self.aircrafts[f]["status"] == AircraftStatus.HOLDING.value],
+            "takeoff_queue": [f for f in self.takeoff_queue 
+                            if f in self.aircrafts],
+            "logs": self.logs[-20:]
+        }
 
 class ATCServicer(atc_pb2_grpc.ATCServiceServicer):
     def __init__(self, atc_core):
@@ -240,7 +276,7 @@ class ATCServicer(atc_pb2_grpc.ATCServiceServicer):
         )
 
 async def handle_client(websocket):
-    """Simplified handler that only takes websocket parameter"""
+    """Simplified WebSocket handler without path parameter"""
     atc_core.connections.add(websocket)
     try:
         # Send initial state
@@ -248,29 +284,40 @@ async def handle_client(websocket):
         
         # Keep connection alive
         while True:
-            await asyncio.sleep(1)
-    except websockets.exceptions.ConnectionClosed:
-        pass
+            try:
+                # Wait for any message (or timeout) to keep connection alive
+                await asyncio.wait_for(websocket.recv(), timeout=15)
+            except asyncio.TimeoutError:
+                # Just continue to keep connection alive
+                continue
+            except websockets.exceptions.ConnectionClosed:
+                break
+    except Exception as e:
+        print(f"WebSocket error: {e}")
     finally:
         atc_core.connections.remove(websocket)
-
+        await websocket.close()
 async def broadcast_updates():
-    """Periodically send updates like the Node.js broadcastData"""
+    """Periodically send updates to all connected clients"""
     while True:
-        status = atc_core.get_system_status()
-        for ws in atc_core.connections:
-            try:
-                await ws.send(json.dumps(status))
-            except:
-                atc_core.connections.remove(ws)
-        await asyncio.sleep(5)  # Update every 5 seconds like Node.js example
-
-
-async def dummy_data_generator():
-    """Periodically generate dummy activity"""
-    while True:
-        atc_core.generate_dummy_activity()
-        await asyncio.sleep(random.uniform(2, 5))  # Random interval between 2-5 seconds        
+        if atc_core.connections:
+            status = atc_core.get_system_status()
+            disconnected = set()
+            
+            for ws in atc_core.connections:
+                try:
+                    await ws.send(json.dumps(status))
+                except:
+                    disconnected.add(ws)
+            
+            # Remove any disconnected clients
+            for ws in disconnected:
+                try:
+                    atc_core.connections.remove(ws)
+                except:
+                    pass
+        
+        await asyncio.sleep(1)  # Update every second
 
 async def serve():
     global atc_core
@@ -282,8 +329,9 @@ async def serve():
     server.add_insecure_port('[::]:50051')
     await server.start()
     
+    # Start WebSocket server with lambda to ignore path
     ws_server = await websockets.serve(
-        handle_client,  # Now using the single-parameter version
+        lambda ws, path: handle_client(ws),  # Lambda to discard path parameter
         "localhost",
         6789
     )
@@ -292,11 +340,20 @@ async def serve():
     asyncio.create_task(broadcast_updates())
     
     # Open dashboard
-    dashboard_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dashboard.html')
-    webbrowser.open(f'file://{dashboard_path}')
+    try:
+        dashboard_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dashboard.html')
+        webbrowser.open(f'file://{dashboard_path}')
+    except Exception as e:
+        print(f"Could not open dashboard: {e}")
     
     print("Servers started. gRPC on port 50051, WebSocket on port 6789")
-    await server.wait_for_termination()
+    
+    try:
+        await server.wait_for_termination()
+    except KeyboardInterrupt:
+        print("Shutting down servers...")
+        await ws_server.wait_closed()
+        await server.stop(0)
 
 if __name__ == "__main__":
     asyncio.run(serve())
