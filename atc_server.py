@@ -167,12 +167,12 @@ class ATCDatabase:
                     return runway_id
         return None
 
-    def add_aircraft(self, flight_number, size):
+    def add_aircraft(self, flight_number, size, status = "ENROUTE"):
         """Register a new aircraft in the system"""
         self.aircrafts[flight_number] = {
             "flight_number": flight_number,
             "size": size,
-            "status": "ENROUTE",
+            "status": status,
             "requested_operation": None,
             "runway_assigned": None,
             "delay": 0,
@@ -336,7 +336,7 @@ class ATCService(ATCServiceServicer):
     def __init__(self, database):
         self.db = database
     
-    def RequestLanding(self, request, context):
+    async def RequestLanding(self, request, context):
         response = self.db.request_landing(
             request.flight_number,
             request.aircraft_type,
@@ -349,7 +349,7 @@ class ATCService(ATCServiceServicer):
             estimated_wait_time=response["estimated_wait_time"]
         )
     
-    def RequestTakeoff(self, request, context):
+    async def RequestTakeoff(self, request, context):
         response = self.db.request_takeoff(
             request.flight_number,
             request.aircraft_type,
@@ -362,14 +362,19 @@ class ATCService(ATCServiceServicer):
             estimated_wait_time=response["estimated_wait_time"]
         )
     
-    def CreateAircraft(self, request, context):
-        self.db.add_aircraft(request.flight_number, request.size)
+    async def CreateAircraft(self, request, context):
+        status = ""
+        if(request.status == "DEPART"): #Update status
+            status = "DEPART"
+        else:
+            status = "ENROUTE"
+        self.db.add_aircraft(request.flight_number, request.size, status)
         return StatusUpdate(
             flight_number=request.flight_number,
-            status="ENROUTE"
+            status=status
         )
     
-    def UpdateStatus(self, request, context):
+    async def UpdateStatus(self, request, context):
         success = self.db.update_status(request.flight_number, request.status)
         return ATCResponse(
             flight_number=request.flight_number,
@@ -378,7 +383,7 @@ class ATCService(ATCServiceServicer):
             estimated_wait_time=0
         )
     
-    def GetSystemStatus(self, request, context):
+    async def GetSystemStatus(self, request, context):
         status = self.db.get_system_status()
         return SystemStatus(
             aircrafts=[AircraftProto(**ac) for ac in status["aircrafts"]],
@@ -388,7 +393,7 @@ class ATCService(ATCServiceServicer):
             logs=status["logs"]
         )
     
-    def ToggleGenerator(self, request, context):
+    async def ToggleGenerator(self, request, context):
         if request.action == 'start':
             self.db.flight_generator.start()
             return ATCResponse(
