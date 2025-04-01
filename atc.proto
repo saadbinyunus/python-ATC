@@ -5,8 +5,10 @@ package atc;
 service ATCService {
     rpc RequestLanding (LandingRequest) returns (ATCResponse);
     rpc RequestTakeoff (TakeoffRequest) returns (ATCResponse);
+    rpc CreateAircraft (Aircraft) returns (StatusUpdate);
     rpc UpdateStatus (StatusUpdate) returns (ATCResponse);
     rpc GetSystemStatus (StatusRequest) returns (SystemStatus);
+    rpc ToggleGenerator (GeneratorRequest) returns (ATCResponse);
 }
 
 message LandingRequest {
@@ -33,7 +35,7 @@ message ATCResponse {
     int32 estimated_wait_time = 4;
 }
 
-message StatusRequest {}  // Empty request
+message StatusRequest {}
 
 message SystemStatus {
     repeated Aircraft aircrafts = 1;
@@ -59,4 +61,8 @@ message Runway {
     string status = 3;
     string current_operation = 4;
     string current_aircraft = 5;
+}
+
+message GeneratorRequest {
+    string action = 1;  // "start" or "stop"
 }

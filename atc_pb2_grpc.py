@@ -44,6 +44,11 @@ class ATCServiceStub(object):
                 request_serializer=atc__pb2.TakeoffRequest.SerializeToString,
                 response_deserializer=atc__pb2.ATCResponse.FromString,
                 _registered_method=True)
+        self.CreateAircraft = channel.unary_unary(
+                '/atc.ATCService/CreateAircraft',
+                request_serializer=atc__pb2.Aircraft.SerializeToString,
+                response_deserializer=atc__pb2.StatusUpdate.FromString,
+                _registered_method=True)
         self.UpdateStatus = channel.unary_unary(
                 '/atc.ATCService/UpdateStatus',
                 request_serializer=atc__pb2.StatusUpdate.SerializeToString,
@@ -53,6 +58,11 @@ class ATCServiceStub(object):
                 '/atc.ATCService/GetSystemStatus',
                 request_serializer=atc__pb2.StatusRequest.SerializeToString,
                 response_deserializer=atc__pb2.SystemStatus.FromString,
+                _registered_method=True)
+        self.ToggleGenerator = channel.unary_unary(
+                '/atc.ATCService/ToggleGenerator',
+                request_serializer=atc__pb2.GeneratorRequest.SerializeToString,
+                response_deserializer=atc__pb2.ATCResponse.FromString,
                 _registered_method=True)
 
 
@@ -71,6 +81,12 @@ class ATCServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CreateAircraft(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def UpdateStatus(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -78,6 +94,12 @@ class ATCServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def GetSystemStatus(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ToggleGenerator(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -96,6 +118,11 @@ def add_ATCServiceServicer_to_server(servicer, server):
                     request_deserializer=atc__pb2.TakeoffRequest.FromString,
                     response_serializer=atc__pb2.ATCResponse.SerializeToString,
             ),
+            'CreateAircraft': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateAircraft,
+                    request_deserializer=atc__pb2.Aircraft.FromString,
+                    response_serializer=atc__pb2.StatusUpdate.SerializeToString,
+            ),
             'UpdateStatus': grpc.unary_unary_rpc_method_handler(
                     servicer.UpdateStatus,
                     request_deserializer=atc__pb2.StatusUpdate.FromString,
@@ -105,6 +132,11 @@ def add_ATCServiceServicer_to_server(servicer, server):
                     servicer.GetSystemStatus,
                     request_deserializer=atc__pb2.StatusRequest.FromString,
                     response_serializer=atc__pb2.SystemStatus.SerializeToString,
+            ),
+            'ToggleGenerator': grpc.unary_unary_rpc_method_handler(
+                    servicer.ToggleGenerator,
+                    request_deserializer=atc__pb2.GeneratorRequest.FromString,
+                    response_serializer=atc__pb2.ATCResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -172,6 +204,33 @@ class ATCService(object):
             _registered_method=True)
 
     @staticmethod
+    def CreateAircraft(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/atc.ATCService/CreateAircraft',
+            atc__pb2.Aircraft.SerializeToString,
+            atc__pb2.StatusUpdate.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
     def UpdateStatus(request,
             target,
             options=(),
@@ -215,6 +274,33 @@ class ATCService(object):
             '/atc.ATCService/GetSystemStatus',
             atc__pb2.StatusRequest.SerializeToString,
             atc__pb2.SystemStatus.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ToggleGenerator(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/atc.ATCService/ToggleGenerator',
+            atc__pb2.GeneratorRequest.SerializeToString,
+            atc__pb2.ATCResponse.FromString,
             options,
             channel_credentials,
             insecure,

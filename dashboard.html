@@ -71,6 +71,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         button {
             padding: 8px 16px;
@@ -92,9 +93,12 @@
             padding: 5px 10px;
             border-radius: 4px;
             display: inline-block;
+            margin-bottom: 10px;
         }
         .connected { background-color: #2ecc71; color: white; }
         .disconnected { background-color: #e74c3c; color: white; }
+        .generator-running { color: #2ecc71; }
+        .generator-stopped { color: #e74c3c; }
     </style>
 </head>
 <body>
@@ -106,6 +110,8 @@
                 <div class="controls">
                     <button id="test-landing">Send Test Landing</button>
                     <button id="test-takeoff">Send Test Takeoff</button>
+                    <button id="toggle-generator">Start Generator</button>
+                    <span id="generator-status" class="generator-stopped">(Stopped)</span>
                 </div>
                 <div class="controls">
                     <select id="flight-number">
@@ -164,6 +170,7 @@
         // WebSocket connection
         let socket;
         const wsUrl = 'ws://localhost:6789';
+        const grpcUrl = 'http://localhost:50051';
         
         // DOM elements
         const connectionStatus = document.getElementById('connection-status');
@@ -177,7 +184,11 @@
         const testLandingBtn = document.getElementById('test-landing');
         const testTakeoffBtn = document.getElementById('test-takeoff');
         const updateStatusBtn = document.getElementById('update-status');
+        const toggleGeneratorBtn = document.getElementById('toggle-generator');
+        const generatorStatus = document.getElementById('generator-status');
         
+        let generatorRunning = false;
+
         // Connect to WebSocket
         function connect() {
             socket = new WebSocket(wsUrl);
@@ -185,7 +196,6 @@
             socket.onopen = function() {
                 connectionStatus.textContent = 'CONNECTED';
                 connectionStatus.className = 'connected';
-                console.log('Connected to ATC server');
             };
             
             socket.onmessage = function(event) {
@@ -198,8 +208,6 @@
             socket.onclose = function() {
                 connectionStatus.textContent = 'DISCONNECTED';
                 connectionStatus.className = 'disconnected';
-                console.log('Disconnected from ATC server');
-                // Attempt to reconnect after 3 seconds
                 setTimeout(connect, 3000);
             };
             
@@ -292,13 +300,14 @@
             const size = Math.floor(1 + Math.random() * 3);
             
             try {
-                const response = await fetch('http://localhost:50051', {
+                const response = await fetch(grpcUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         flight_number: flightNum,
+                        aircraft_type: 'TEST',
                         size: size
                     })
                 });
@@ -315,13 +324,14 @@
             const size = Math.floor(1 + Math.random() * 3);
             
             try {
-                const response = await fetch('http://localhost:50051', {
+                const response = await fetch(grpcUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         flight_number: flightNum,
+                        aircraft_type: 'TEST',
                         size: size
                     })
                 });
@@ -342,7 +352,7 @@
             }
             
             try {
-                const response = await fetch('http://localhost:50051', {
+                const response = await fetch(grpcUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -355,6 +365,29 @@
                 console.log(`Status updated for ${flightNumber} to ${status}`);
             } catch (error) {
                 console.error('Error updating status:', error);
+            }
+        });
+        
+        // Toggle flight generator
+        toggleGeneratorBtn.addEventListener('click', async () => {
+            try {
+                const action = generatorRunning ? 'stop' : 'start';
+                const response = await fetch(grpcUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: action
+                    })
+                });
+                
+                generatorRunning = !generatorRunning;
+                toggleGeneratorBtn.textContent = generatorRunning ? 'Stop Generator' : 'Start Generator';
+                generatorStatus.textContent = generatorRunning ? '(Running)' : '(Stopped)';
+                generatorStatus.className = generatorRunning ? 'generator-running' : 'generator-stopped';
+            } catch (error) {
+                console.error('Error toggling generator:', error);
             }
         });
         
