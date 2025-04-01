@@ -5,7 +5,7 @@ package atc;
 service ATCService {
     rpc RequestLanding (LandingRequest) returns (ATCResponse);
     rpc RequestTakeoff (TakeoffRequest) returns (ATCResponse);
-    rpc CreateAircraft (Aircraft) returns (StatusUpdate); //Client can create new aircraft, response is status
+    rpc CreateAircraft (Aircraft) returns (StatusUpdate);//Client can create new aircraft, response is status
     rpc UpdateStatus (StatusUpdate) returns (ATCResponse);
     rpc GetSystemStatus (StatusRequest) returns (SystemStatus);
 }
