@@ -8,7 +8,7 @@ from datetime import datetime
 import grpc
 import websockets
 
-# Import generated protobuf classes
+
 from atc_pb2 import (
     LandingRequest,
     TakeoffRequest,
@@ -25,7 +25,7 @@ from atc_pb2_grpc import (
     add_ATCServiceServicer_to_server
 )
 
-# Configure logging
+#Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -65,10 +65,9 @@ class ATCDatabase:
 
     async def _process_queues(self):
         """Process both queues in priority order"""
-        # Process landing queue first (higher priority)
+
         processed = await self._process_single_queue(self.landing_queue, "LANDING")
         
-        # Only process takeoff queue if no landing was processed
         if not processed:
             await self._process_single_queue(self.takeoff_queue, "TAKEOFF")
 
@@ -77,7 +76,6 @@ class ATCDatabase:
         if not queue:
             return False
 
-        # Work with a copy to avoid modification during iteration
         for flight_number in list(queue):
             if flight_number not in self.aircrafts:
                 queue.remove(flight_number)
@@ -87,12 +85,11 @@ class ATCDatabase:
             if aircraft["status"] != "HOLDING":
                 continue
 
-            # Try to assign runway
             if self._assign_runway_to_aircraft(flight_number, operation_type):
                 queue.remove(flight_number)
-                return True  # Successfully processed one aircraft
+                return True  
         
-        return False  # No aircraft processed
+        return False  
 
     def _assign_runway_to_aircraft(self, flight_number, operation_type):
         """Attempt to assign a runway to the specified aircraft"""
@@ -104,7 +101,6 @@ class ATCDatabase:
         if not runway_id:
             return False
 
-        # Assign the runway
         self.runways[runway_id].update({
             "status": "OCCUPIED",
             "current_operation": operation_type,
@@ -114,10 +110,9 @@ class ATCDatabase:
         self.aircrafts[flight_number].update({
             "runway_assigned": runway_id,
             "status": operation_type,
-            "delay": 0  # Reset delay counter
+            "delay": 0 
         })
 
-        # Track operation start time
         self.operation_timeouts[flight_number] = (
             operation_type,
             datetime.now()
@@ -144,7 +139,6 @@ class ATCDatabase:
         """Mark an operation as completed and free up resources"""
         new_status = "LANDED" if operation_type == "LANDING" else "DEPARTED"
         
-        # Free up the runway
         if flight_number in self.aircrafts:
             runway_id = self.aircrafts[flight_number].get("runway_assigned")
             if runway_id and runway_id in self.runways:
@@ -224,7 +218,7 @@ class ATCDatabase:
         else:
             queue = self.landing_queue if operation_type == "LANDING" else self.takeoff_queue
             position = queue.index(flight_number) if flight_number in queue else len(queue)
-            wait_time = (position + 1) * 15  # 15 seconds per position in queue
+            wait_time = (position + 1) * 15  
             
             self.aircrafts[flight_number]["delay"] = wait_time
             return {
@@ -364,7 +358,7 @@ class ATCService(ATCServiceServicer):
     
     async def CreateAircraft(self, request, context):
         status = ""
-        if(request.status == "DEPART"): #Update status
+        if(request.status == "DEPART"):
             status = "DEPART"
         else:
             status = "ENROUTE"
@@ -417,13 +411,11 @@ async def websocket_handler(websocket):
     logger.info(f"New WebSocket connection from {websocket.remote_address}")
     
     try:
-        # Send initial status
         await websocket.send(json.dumps({
             "type": "status_update",
             "data": db.get_system_status()
         }))
         
-        # Keep connection alive
         async for _ in websocket:
             pass
             
@@ -438,22 +430,22 @@ async def start_servers():
     
 
     
-    # Start gRPC server
+    #Start gRPC server
     grpc_server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))
     add_ATCServiceServicer_to_server(ATCService(db), grpc_server)
-    grpc_server.add_insecure_port('[::]:50051')
+    grpc_server.add_insecure_port('0.0.0.0:50051')
     await grpc_server.start()
     logger.info("gRPC server started on port 50051")
     
-    # Start WebSocket server
+    #Start WebSocket server
     ws_server = await websockets.serve(
         websocket_handler,
-        "localhost",
+        "0.0.0.0",
         6789
     )
     logger.info("WebSocket server started on port 6789")
     
-    # Start flight generator
+    #Start flight generator
     db.flight_generator.start(interval=7)
     
     try:

@@ -1,398 +1,512 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Air Traffic Control Dashboard</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f0f2f5;
-            color: #333;
-        }
-        .container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .panel {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            padding: 20px;
-        }
-        h1, h2 {
-            color: #2c3e50;
-            margin-top: 0;
-        }
-        .status-indicator {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-        .status-enroute { background-color: #3498db; }
-        .status-holding { background-color: #f39c12; }
-        .status-landing { background-color: #e74c3c; }
-        .status-landed { background-color: #2ecc71; }
-        .status-takeoff { background-color: #9b59b6; }
-        .status-departed { background-color: #1abc9c; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        th {
-            background-color: #f8f9fa;
-        }
-        .runway {
-            margin-bottom: 15px;
-            padding: 15px;
-            border-radius: 6px;
-            background-color: #f8f9fa;
-        }
-        .runway-available { border-left: 5px solid #2ecc71; }
-        .runway-occupied { border-left: 5px solid #e74c3c; }
-        .log-entry {
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        button {
-            padding: 8px 16px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        select, input {
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-        }
-        #connection-status {
-            padding: 5px 10px;
-            border-radius: 4px;
-            display: inline-block;
-            margin-bottom: 10px;
-        }
-        .connected { background-color: #2ecc71; color: white; }
-        .disconnected { background-color: #e74c3c; color: white; }
-        .generator-running { color: #2ecc71; }
-        .generator-stopped { color: #e74c3c; }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f0f2f5;
+        color: #333;
+      }
+      .container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .panel {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+      }
+      h1,
+      h2 {
+        color: #2c3e50;
+        margin-top: 0;
+      }
+      .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+      }
+      .status-enroute {
+        background-color: #3498db;
+      }
+      .status-holding {
+        background-color: #f39c12;
+      }
+      .status-landing {
+        background-color: #e74c3c;
+      }
+      .status-landed {
+        background-color: #2ecc71;
+      }
+      .status-takeoff {
+        background-color: #9b59b6;
+      }
+      .status-departed {
+        background-color: #1abc9c;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+      th {
+        background-color: #f8f9fa;
+      }
+      .runway {
+        margin-bottom: 15px;
+        padding: 15px;
+        border-radius: 6px;
+        background-color: #f8f9fa;
+      }
+      .runway-available {
+        border-left: 5px solid #2ecc71;
+      }
+      .runway-occupied {
+        border-left: 5px solid #e74c3c;
+      }
+      .log-entry {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+      button {
+        padding: 8px 16px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #2980b9;
+      }
+      select,
+      input {
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+      }
+      #connection-status {
+        padding: 5px 10px;
+        border-radius: 4px;
+        display: inline-block;
+        margin-bottom: 10px;
+      }
+      .connected {
+        background-color: #2ecc71;
+        color: white;
+      }
+      .disconnected {
+        background-color: #e74c3c;
+        color: white;
+      }
+      .generator-running {
+        color: #2ecc71;
+      }
+      .generator-stopped {
+        color: #e74c3c;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <div class="panel">
-            <h1>Air Traffic Control Dashboard</h1>
-            <div>
-                <span id="connection-status" class="disconnected">DISCONNECTED</span>
-                <div class="controls">
-                    <button id="test-landing">Send Test Landing</button>
-                    <button id="test-takeoff">Send Test Takeoff</button>
-                    <button id="toggle-generator">Start Generator</button>
-                    <span id="generator-status" class="generator-stopped">(Stopped)</span>
-                </div>
-                <div class="controls">
-                    <select id="flight-number">
-                        <option value="">Select Aircraft</option>
-                    </select>
-                    <select id="status-select">
-                        <option value="LANDED">LANDED</option>
-                        <option value="DEPARTED">DEPARTED</option>
-                        <option value="HOLDING">HOLDING</option>
-                    </select>
-                    <button id="update-status">Update Status</button>
-                </div>
-            </div>
-            
-            <h2>Runways</h2>
-            <div id="runways-container"></div>
+      <div class="panel">
+        <h1>Air Traffic Control Dashboard</h1>
+        <div>
+          <span id="connection-status" class="disconnected">DISCONNECTED</span>
+          <div class="controls">
+            <button id="test-landing">Send Test Landing</button>
+            <button id="test-takeoff">Send Test Takeoff</button>
+            <button id="toggle-generator">Start Generator</button>
+            <span id="generator-status" class="generator-stopped"
+              >(Stopped)</span
+            >
+          </div>
+          <div class="controls">
+            <select id="flight-number">
+              <option value="">Select Aircraft</option>
+            </select>
+            <select id="status-select">
+              <option value="LANDED">LANDED</option>
+              <option value="DEPARTED">DEPARTED</option>
+              <option value="HOLDING">HOLDING</option>
+            </select>
+            <button id="update-status">Update Status</button>
+          </div>
         </div>
-        
-        <div class="panel">
-            <h2>Aircraft</h2>
-            <table id="aircraft-table">
-                <thead>
-                    <tr>
-                        <th>Flight</th>
-                        <th>Size</th>
-                        <th>Status</th>
-                        <th>Runway</th>
-                        <th>Delay</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+
+        <h2>Runways</h2>
+        <div id="runways-container"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Aircraft</h2>
+        <table id="aircraft-table">
+          <thead>
+            <tr>
+              <th>Flight</th>
+              <th>Size</th>
+              <th>Status</th>
+              <th>Runway</th>
+              <th>Delay</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h2>Queues</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
+          <div>
+            <h3>Landing Queue</h3>
+            <ol id="landing-queue"></ol>
+          </div>
+          <div>
+            <h3>Takeoff Queue</h3>
+            <ol id="takeoff-queue"></ol>
+          </div>
         </div>
-        
-        <div class="panel">
-            <h2>Queues</h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div>
-                    <h3>Landing Queue</h3>
-                    <ol id="landing-queue"></ol>
-                </div>
-                <div>
-                    <h3>Takeoff Queue</h3>
-                    <ol id="takeoff-queue"></ol>
-                </div>
-            </div>
-        </div>
-        
-        <div class="panel">
-            <h2>Activity Log</h2>
-            <div id="activity-log"></div>
-        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Activity Log</h2>
+        <div id="activity-log"></div>
+      </div>
     </div>
 
     <script>
-        // WebSocket connection
-        let socket;
-        const wsUrl = 'ws://localhost:6789';
-        const grpcUrl = 'http://localhost:50051';
-        
-        // DOM elements
-        const connectionStatus = document.getElementById('connection-status');
-        const aircraftTable = document.getElementById('aircraft-table').querySelector('tbody');
-        const runwaysContainer = document.getElementById('runways-container');
-        const landingQueue = document.getElementById('landing-queue');
-        const takeoffQueue = document.getElementById('takeoff-queue');
-        const activityLog = document.getElementById('activity-log');
-        const flightNumberSelect = document.getElementById('flight-number');
-        const statusSelect = document.getElementById('status-select');
-        const testLandingBtn = document.getElementById('test-landing');
-        const testTakeoffBtn = document.getElementById('test-takeoff');
-        const updateStatusBtn = document.getElementById('update-status');
-        const toggleGeneratorBtn = document.getElementById('toggle-generator');
-        const generatorStatus = document.getElementById('generator-status');
-        
-        let generatorRunning = false;
+      // WebSocket connection
+      let socket;
+      let useWebSocket = true; // Flag to track if WebSocket is being used
+      const wsUrl = `ws://${window.location.hostname}:6789`;
+      const grpcUrl = "/api/system-status";
+      const statusUrl = "/api/system-status";
 
-        // Connect to WebSocket
-        function connect() {
-            socket = new WebSocket(wsUrl);
-            
-            socket.onopen = function() {
-                connectionStatus.textContent = 'CONNECTED';
-                connectionStatus.className = 'connected';
-            };
-            
-            socket.onmessage = function(event) {
-                const message = JSON.parse(event.data);
-                if (message.type === 'status_update') {
-                    updateDashboard(message.data);
-                }
-            };
-            
-            socket.onclose = function() {
-                connectionStatus.textContent = 'DISCONNECTED';
-                connectionStatus.className = 'disconnected';
-                setTimeout(connect, 3000);
-            };
-            
-            socket.onerror = function(error) {
-                console.error('WebSocket error:', error);
-            };
+      //DOM elements
+      const connectionStatus = document.getElementById("connection-status");
+      const aircraftTable = document
+        .getElementById("aircraft-table")
+        .querySelector("tbody");
+      const runwaysContainer = document.getElementById("runways-container");
+      const landingQueue = document.getElementById("landing-queue");
+      const takeoffQueue = document.getElementById("takeoff-queue");
+      const activityLog = document.getElementById("activity-log");
+      const flightNumberSelect = document.getElementById("flight-number");
+      const statusSelect = document.getElementById("status-select");
+      const testLandingBtn = document.getElementById("test-landing");
+      const testTakeoffBtn = document.getElementById("test-takeoff");
+      const updateStatusBtn = document.getElementById("update-status");
+      const toggleGeneratorBtn = document.getElementById("toggle-generator");
+      const generatorStatus = document.getElementById("generator-status");
+
+      let generatorRunning = false;
+
+      //Connect to WebSocket
+      // function connect() {
+      //   socket = new WebSocket(wsUrl);
+
+      //   socket.onopen = function () {
+      //     connectionStatus.textContent = "CONNECTED";
+      //     connectionStatus.className = "connected";
+      //     console.log("WebSocket connected successfully");
+      //   };
+
+      //   socket.onmessage = function (event) {
+      //     const message = JSON.parse(event.data);
+      //     if (message.type === "status_update") {
+      //       updateDashboard(message.data);
+      //     }
+      //   };
+
+      //   socket.onclose = function () {
+      //     connectionStatus.textContent = "USING API FALLBACK";
+      //     connectionStatus.className = "disconnected";
+      //     console.log("WebSocket closed, falling back to API");
+
+      //     fetchSystemStatus();
+      //   };
+
+      //   socket.onerror = function (error) {
+      //     console.error("WebSocket error:", error);
+      //     connectionStatus.textContent = "USING API FALLBACK";
+
+      //     fetchSystemStatus();
+      //   };
+      // }
+      function setupWebSocket() {
+        // Determine the correct WebSocket URL
+        const wsProtocol =
+          window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = function () {
+          connectionStatus.textContent = "CONNECTED";
+          connectionStatus.className = "connected";
+          console.log("WebSocket connected successfully");
+          useWebSocket = true;
+        };
+
+        socket.onmessage = function (event) {
+          const message = JSON.parse(event.data);
+          if (message.type === "status_update") {
+            updateDashboard(message.data);
+          }
+        };
+
+        socket.onclose = function () {
+          connectionStatus.textContent = "USING API FALLBACK";
+          connectionStatus.className = "disconnected";
+          console.log("WebSocket closed, falling back to API");
+          useWebSocket = false;
+
+          // Start API polling
+          fetchSystemStatus();
+        };
+
+        socket.onerror = function (error) {
+          console.error("WebSocket error:", error);
+          connectionStatus.textContent = "USING API FALLBACK";
+          useWebSocket = false;
+
+          // Start API polling
+          fetchSystemStatus();
+        };
+      }
+
+      async function fetchSystemStatus() {
+        try {
+          const response = await fetch(statusUrl);
+          if (response.ok) {
+            const data = await response.json();
+            updateDashboard(data);
+          }
+        } catch (error) {
+          console.error("Error fetching system status:", error);
         }
-        
-        // Update dashboard with new data
-        function updateDashboard(data) {
-            // Update aircraft table
-            aircraftTable.innerHTML = '';
-            flightNumberSelect.innerHTML = '<option value="">Select Aircraft</option>';
-            
-            data.aircrafts.forEach(aircraft => {
-                const row = document.createElement('tr');
-                
-                row.innerHTML = `
+
+        setTimeout(fetchSystemStatus, 3000);
+      }
+
+      function updateDashboard(data) {
+        aircraftTable.innerHTML = "";
+        flightNumberSelect.innerHTML =
+          '<option value="">Select Aircraft</option>';
+
+        data.aircrafts.forEach((aircraft) => {
+          const row = document.createElement("tr");
+
+          row.innerHTML = `
                     <td>${aircraft.flight_number}</td>
                     <td>${getSizeName(aircraft.size)}</td>
-                    <td><span class="status-indicator status-${aircraft.status.toLowerCase()}"></span>${aircraft.status}</td>
-                    <td>${aircraft.runway_assigned || '-'}</td>
-                    <td>${aircraft.delay || '0'} sec</td>
+                    <td><span class="status-indicator status-${aircraft.status.toLowerCase()}"></span>${
+            aircraft.status
+          }</td>
+                    <td>${aircraft.runway_assigned || "-"}</td>
+                    <td>${aircraft.delay || "0"} sec</td>
                 `;
-                
-                aircraftTable.appendChild(row);
-                
-                // Add to flight number dropdown
-                const option = document.createElement('option');
-                option.value = aircraft.flight_number;
-                option.textContent = aircraft.flight_number;
-                flightNumberSelect.appendChild(option);
-            });
-            
-            // Update runways
-            runwaysContainer.innerHTML = '';
-            data.runways.forEach(runway => {
-                const runwayDiv = document.createElement('div');
-                runwayDiv.className = `runway runway-${runway.status.toLowerCase()}`;
-                
-                runwayDiv.innerHTML = `
+
+          aircraftTable.appendChild(row);
+
+          const option = document.createElement("option");
+          option.value = aircraft.flight_number;
+          option.textContent = aircraft.flight_number;
+          flightNumberSelect.appendChild(option);
+        });
+
+        //Update runways
+        runwaysContainer.innerHTML = "";
+        data.runways.forEach((runway) => {
+          const runwayDiv = document.createElement("div");
+          runwayDiv.className = `runway runway-${runway.status.toLowerCase()}`;
+
+          runwayDiv.innerHTML = `
                     <h3>Runway ${runway.id} (${runway.length}m)</h3>
                     <p>Status: ${runway.status}</p>
-                    ${runway.current_operation ? `<p>Operation: ${runway.current_operation}</p>` : ''}
-                    ${runway.current_aircraft ? `<p>Aircraft: ${runway.current_aircraft}</p>` : ''}
+                    ${
+                      runway.current_operation
+                        ? `<p>Operation: ${runway.current_operation}</p>`
+                        : ""
+                    }
+                    ${
+                      runway.current_aircraft
+                        ? `<p>Aircraft: ${runway.current_aircraft}</p>`
+                        : ""
+                    }
                 `;
-                
-                runwaysContainer.appendChild(runwayDiv);
-            });
-            
-            // Update queues
-            landingQueue.innerHTML = '';
-            data.landing_queue.forEach(flight => {
-                const li = document.createElement('li');
-                li.textContent = flight;
-                landingQueue.appendChild(li);
-            });
-            
-            takeoffQueue.innerHTML = '';
-            data.takeoff_queue.forEach(flight => {
-                const li = document.createElement('li');
-                li.textContent = flight;
-                takeoffQueue.appendChild(li);
-            });
-            
-            // Update activity log
-            activityLog.innerHTML = '';
-            data.logs.forEach(log => {
-                const entry = document.createElement('div');
-                entry.className = 'log-entry';
-                entry.textContent = log;
-                activityLog.appendChild(entry);
-            });
+
+          runwaysContainer.appendChild(runwayDiv);
+        });
+
+        //Update queues
+        landingQueue.innerHTML = "";
+        data.landing_queue.forEach((flight) => {
+          const li = document.createElement("li");
+          li.textContent = flight;
+          landingQueue.appendChild(li);
+        });
+
+        takeoffQueue.innerHTML = "";
+        data.takeoff_queue.forEach((flight) => {
+          const li = document.createElement("li");
+          li.textContent = flight;
+          takeoffQueue.appendChild(li);
+        });
+
+        //Update activity log
+        activityLog.innerHTML = "";
+        data.logs.forEach((log) => {
+          const entry = document.createElement("div");
+          entry.className = "log-entry";
+          entry.textContent = log;
+          activityLog.appendChild(entry);
+        });
+      }
+
+      function getSizeName(size) {
+        switch (size) {
+          case 1:
+            return "Small";
+          case 2:
+            return "Medium";
+          case 3:
+            return "Large";
+          default:
+            return "Unknown";
         }
-        
-        // Helper function to get size name
-        function getSizeName(size) {
-            switch(size) {
-                case 1: return 'Small';
-                case 2: return 'Medium';
-                case 3: return 'Large';
-                default: return 'Unknown';
-            }
+      }
+
+      testLandingBtn.addEventListener("click", async () => {
+        const airlines = ["AC", "WS", "DL", "AA", "UA", "BA", "AF"];
+        const flightNum = `${
+          airlines[Math.floor(Math.random() * airlines.length)]
+        }${Math.floor(100 + Math.random() * 900)}`;
+        const size = Math.floor(1 + Math.random() * 3);
+
+        try {
+          const response = await fetch(grpcUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              flight_number: flightNum,
+              aircraft_type: "TEST",
+              size: size,
+            }),
+          });
+          console.log("Test landing sent:", flightNum);
+        } catch (error) {
+          console.error("Error sending test landing:", error);
         }
-        
-        // Send test landing request
-        testLandingBtn.addEventListener('click', async () => {
-            const airlines = ['AC', 'WS', 'DL', 'AA', 'UA', 'BA', 'AF'];
-            const flightNum = `${airlines[Math.floor(Math.random() * airlines.length)]}${Math.floor(100 + Math.random() * 900)}`;
-            const size = Math.floor(1 + Math.random() * 3);
-            
-            try {
-                const response = await fetch(grpcUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        flight_number: flightNum,
-                        aircraft_type: 'TEST',
-                        size: size
-                    })
-                });
-                console.log('Test landing sent:', flightNum);
-            } catch (error) {
-                console.error('Error sending test landing:', error);
-            }
-        });
-        
-        // Send test takeoff request
-        testTakeoffBtn.addEventListener('click', async () => {
-            const airlines = ['AC', 'WS', 'DL', 'AA', 'UA', 'BA', 'AF'];
-            const flightNum = `${airlines[Math.floor(Math.random() * airlines.length)]}${Math.floor(100 + Math.random() * 900)}`;
-            const size = Math.floor(1 + Math.random() * 3);
-            
-            try {
-                const response = await fetch(grpcUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        flight_number: flightNum,
-                        aircraft_type: 'TEST',
-                        size: size
-                    })
-                });
-                console.log('Test takeoff sent:', flightNum);
-            } catch (error) {
-                console.error('Error sending test takeoff:', error);
-            }
-        });
-        
-        // Update aircraft status
-        updateStatusBtn.addEventListener('click', async () => {
-            const flightNumber = flightNumberSelect.value;
-            const status = statusSelect.value;
-            
-            if (!flightNumber) {
-                alert('Please select an aircraft');
-                return;
-            }
-            
-            try {
-                const response = await fetch(grpcUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        flight_number: flightNumber,
-                        status: status
-                    })
-                });
-                console.log(`Status updated for ${flightNumber} to ${status}`);
-            } catch (error) {
-                console.error('Error updating status:', error);
-            }
-        });
-        
-        // Toggle flight generator
-        toggleGeneratorBtn.addEventListener('click', async () => {
-            try {
-                const action = generatorRunning ? 'stop' : 'start';
-                const response = await fetch(grpcUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        action: action
-                    })
-                });
-                
-                generatorRunning = !generatorRunning;
-                toggleGeneratorBtn.textContent = generatorRunning ? 'Stop Generator' : 'Start Generator';
-                generatorStatus.textContent = generatorRunning ? '(Running)' : '(Stopped)';
-                generatorStatus.className = generatorRunning ? 'generator-running' : 'generator-stopped';
-            } catch (error) {
-                console.error('Error toggling generator:', error);
-            }
-        });
-        
-        // Initialize
-        connect();
+      });
+
+      testTakeoffBtn.addEventListener("click", async () => {
+        const airlines = ["AC", "WS", "DL", "AA", "UA", "BA", "AF"];
+        const flightNum = `${
+          airlines[Math.floor(Math.random() * airlines.length)]
+        }${Math.floor(100 + Math.random() * 900)}`;
+        const size = Math.floor(1 + Math.random() * 3);
+
+        try {
+          const response = await fetch(grpcUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              flight_number: flightNum,
+              aircraft_type: "TEST",
+              size: size,
+            }),
+          });
+          console.log("Test takeoff sent:", flightNum);
+        } catch (error) {
+          console.error("Error sending test takeoff:", error);
+        }
+      });
+
+      updateStatusBtn.addEventListener("click", async () => {
+        const flightNumber = flightNumberSelect.value;
+        const status = statusSelect.value;
+
+        if (!flightNumber) {
+          alert("Please select an aircraft");
+          return;
+        }
+
+        try {
+          const response = await fetch(grpcUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              flight_number: flightNumber,
+              status: status,
+            }),
+          });
+          console.log(`Status updated for ${flightNumber} to ${status}`);
+        } catch (error) {
+          console.error("Error updating status:", error);
+        }
+      });
+
+      toggleGeneratorBtn.addEventListener("click", async () => {
+        try {
+          const action = generatorRunning ? "stop" : "start";
+          const response = await fetch(grpcUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              action: action,
+            }),
+          });
+
+          generatorRunning = !generatorRunning;
+          toggleGeneratorBtn.textContent = generatorRunning
+            ? "Stop Generator"
+            : "Start Generator";
+          generatorStatus.textContent = generatorRunning
+            ? "(Running)"
+            : "(Stopped)";
+          generatorStatus.className = generatorRunning
+            ? "generator-running"
+            : "generator-stopped";
+        } catch (error) {
+          console.error("Error toggling generator:", error);
+        }
+      });
+
+      // Initialize
+      // connect();
+      setupWebSocket();
     </script>
-</body>
+  </body>
 </html>

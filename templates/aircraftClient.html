@@ -46,7 +46,7 @@
         </form>
         {% endif %}
         
-        <h3>{{ 'Update Aircraft' if aircraft else 'Create New Aircraft' }}</h3>
+        <h3>{{ 'Create New Aircraft' }}</h3>
         <form method="POST">
             <div class="form-group">
                 <label for="flight_number">Flight Number:</label>
@@ -72,7 +72,7 @@
             </div>
             
             <button type="submit" name="create_aircraft">
-                {{ 'Update Aircraft' if aircraft else 'Create Aircraft' }}
+                {{ 'Create Aircraft' }}
             </button>
         </form>
     </div>

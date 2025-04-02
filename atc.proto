@@ -25,12 +25,12 @@ message TakeoffRequest {
 
 message StatusUpdate {
     string flight_number = 1;
-    string status = 2;  // "LANDED", "DEPARTED", etc.
+    string status = 2;  //LANDED, DEPARTED
 }
 
 message ATCResponse {
     string flight_number = 1;
-    string instruction = 2;  // "hold", "go_around", "cleared_for_landing", etc.
+    string instruction = 2;  //hold, go_around, cleared_for_landing
     int32 assigned_runway = 3;
     int32 estimated_wait_time = 4;
 }
@@ -64,5 +64,5 @@ message Runway {
 }
 
 message GeneratorRequest {
-    string action = 1;  // "start" or "stop"
+    string action = 1;  //start stop
 }
