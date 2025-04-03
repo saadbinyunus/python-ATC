@@ -2,36 +2,32 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install necessary packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libc6-dev \
     nginx \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install dependencies
+#Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application files
 COPY *.py /app/
 COPY *.html /app/
 COPY *.proto /app/
 
-# Create directories
 RUN mkdir -p /app/templates /var/log/nginx
 
-# Copy templates 
 COPY templates/ /app/templates/
 
-# Generate gRPC files
+#Gen gRPC files
 RUN pip install grpcio-tools && \
     python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. atc.proto
 
-# Configure Nginx
+#Configure Nginx
 COPY nginx.conf /etc/nginx/sites-available/default
 
-# Create startup script
+#Startup script
 RUN echo '#!/bin/bash\n\
 # Start Nginx in background\n\
 nginx\n\
@@ -54,10 +50,10 @@ wait $ATC_SERVER_PID $FLASK_PID\n\
 ' > /app/start.sh && \
 chmod +x /app/start.sh
 
-# Expose port 80 for nginx
+#nginx on port 80
 EXPOSE 80
 
 ENV PYTHONUNBUFFERED=1
 
-# Run the startup script
+#Run startup script
 CMD ["/app/start.sh"]

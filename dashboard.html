@@ -200,7 +200,7 @@
     <script>
       // WebSocket connection
       let socket;
-      let useWebSocket = true; // Flag to track if WebSocket is being used
+      let useWebSocket = true;
       const wsUrl = `ws://${window.location.hostname}:6789`;
       const grpcUrl = "/api/system-status";
       const statusUrl = "/api/system-status";
@@ -225,39 +225,8 @@
       let generatorRunning = false;
 
       //Connect to WebSocket
-      // function connect() {
-      //   socket = new WebSocket(wsUrl);
-
-      //   socket.onopen = function () {
-      //     connectionStatus.textContent = "CONNECTED";
-      //     connectionStatus.className = "connected";
-      //     console.log("WebSocket connected successfully");
-      //   };
-
-      //   socket.onmessage = function (event) {
-      //     const message = JSON.parse(event.data);
-      //     if (message.type === "status_update") {
-      //       updateDashboard(message.data);
-      //     }
-      //   };
-
-      //   socket.onclose = function () {
-      //     connectionStatus.textContent = "USING API FALLBACK";
-      //     connectionStatus.className = "disconnected";
-      //     console.log("WebSocket closed, falling back to API");
-
-      //     fetchSystemStatus();
-      //   };
-
-      //   socket.onerror = function (error) {
-      //     console.error("WebSocket error:", error);
-      //     connectionStatus.textContent = "USING API FALLBACK";
-
-      //     fetchSystemStatus();
-      //   };
-      // }
       function setupWebSocket() {
-        // Determine the correct WebSocket URL
+        //Get correct WebSocket URL
         const wsProtocol =
           window.location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
@@ -284,7 +253,6 @@
           console.log("WebSocket closed, falling back to API");
           useWebSocket = false;
 
-          // Start API polling
           fetchSystemStatus();
         };
 
@@ -293,7 +261,6 @@
           connectionStatus.textContent = "USING API FALLBACK";
           useWebSocket = false;
 
-          // Start API polling
           fetchSystemStatus();
         };
       }
