@@ -100,44 +100,44 @@ def system_status():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-@app.route('/api/grpc-proxy', methods=['POST'])
-def grpc_proxy():
-    try:
-        data = request.json
+# @app.route('/api/grpc-proxy', methods=['POST'])
+# def grpc_proxy():
+#     try:
+#         data = request.json
         
-        if 'action' in data:
-            response = stub.ToggleGenerator(atc_pb2.GeneratorRequest(
-                action=data['action']
-            ))
-        elif 'status' in data:
-            response = stub.UpdateStatus(atc_pb2.StatusUpdate(
-                flight_number=data['flight_number'],
-                status=data['status']
-            ))
-        elif 'aircraft_type' in data:
-            if 'takeoff' in request.path:
-                response = stub.RequestTakeoff(atc_pb2.TakeoffRequest(
-                    flight_number=data['flight_number'],
-                    aircraft_type=data['aircraft_type'],
-                    size=data['size']
-                ))
-            else:
-                response = stub.RequestLanding(atc_pb2.LandingRequest(
-                    flight_number=data['flight_number'],
-                    aircraft_type=data['aircraft_type'],
-                    size=data['size']
-                ))
-        else:
-            return jsonify({"error": "Unknown request type"}), 400
+#         if 'action' in data:
+#             response = stub.ToggleGenerator(atc_pb2.GeneratorRequest(
+#                 action=data['action']
+#             ))
+#         elif 'status' in data:
+#             response = stub.UpdateStatus(atc_pb2.StatusUpdate(
+#                 flight_number=data['flight_number'],
+#                 status=data['status']
+#             ))
+#         elif 'aircraft_type' in data:
+#             if 'takeoff' in request.path:
+#                 response = stub.RequestTakeoff(atc_pb2.TakeoffRequest(
+#                     flight_number=data['flight_number'],
+#                     aircraft_type=data['aircraft_type'],
+#                     size=data['size']
+#                 ))
+#             else:
+#                 response = stub.RequestLanding(atc_pb2.LandingRequest(
+#                     flight_number=data['flight_number'],
+#                     aircraft_type=data['aircraft_type'],
+#                     size=data['size']
+#                 ))
+#         else:
+#             return jsonify({"error": "Unknown request type"}), 400
         
-        return jsonify({
-            "flight_number": response.flight_number,
-            "instruction": response.instruction,
-            "assigned_runway": response.assigned_runway,
-            "estimated_wait_time": response.estimated_wait_time
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+#         return jsonify({
+#             "flight_number": response.flight_number,
+#             "instruction": response.instruction,
+#             "assigned_runway": response.assigned_runway,
+#             "estimated_wait_time": response.estimated_wait_time
+#         })
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
 
 @app.route('/health')
 def health_check():
